@@ -30,9 +30,9 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static("/tmp"));
 const path = require('path');
-const uploadPath = path.join(__dirname, 'uploads');
+const uploadPath = path.join(__dirname, '/tmp');
 
 
 app.get("/", async (req, res) => {
