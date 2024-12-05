@@ -8,7 +8,7 @@ const vidMongo = require("./vidschema");
 require('dotenv').config();
 const cors = require('cors');
 const app = express();
-app.use(cors({origin:"https://spicmacay-e7ge.vercel.app"}));
+app.use(cors({origin:"https://spicmacay-e7ge.vercel.app",methods:['GET','POST','DELETE']}));
 cloudinary.config({
     cloud_name: process.env.CLOUD_NAME,
     api_key: process.env.API_KEY,
