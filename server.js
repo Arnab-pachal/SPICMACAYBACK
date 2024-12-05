@@ -48,8 +48,9 @@ app.get("/getphoto", async (req, res) => {
           }
     }
 );
+
 //for uploading photo
-app.post('/uploadphoto', upload.single('file'), async (req, res) => {
+app.post('/uploadphoto', async (req, res) => {
     const path = req.file.path;
     console.log(req.file);
     try {
