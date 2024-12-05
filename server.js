@@ -30,16 +30,9 @@ app.listen(3001, () => {
 });
 
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadPath),
-    filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname),
-});
+const storage = multer.memoryStorage();
 
 const upload = multer({ storage });
-app.use("/uploads", express.static("uploads"));
-const path = require('path');
-const uploadPath = path.join(__dirname, 'uploads');
-
 
 app.get("/",(req,res)=>{res.status(200).json("You are on the root route")});
 //for getting photo
@@ -53,31 +46,33 @@ app.get("/getphoto", async (req, res) => {
     }
 );
 
-//for uploading photo
-app.post('/uploadphoto',upload.single('file'),async (req, res) => {
-    const path = req.file.path;
-    console.log(req.file);
+app.post('/uploadphoto', upload.single('file'), async (req, res) => {
     try {
-        const result = await cloudinary.uploader.upload(path, {
-            public_id: req.file.originalname,
+        console.log(req.file); // Logs the uploaded file metadata
+        const result = await new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+                { public_id: req.file.originalname },
+                (error, result) => {
+                    if (error) reject(error);
+                    else resolve(result);
+                }
+            );
+            stream.end(req.file.buffer); // Pass the buffer to the stream
         });
-        console.log(`This is cloudinary result :- ${result}\n`)
-        const newPic = new Mongo({ name: req.file.originalname, url: result.url });
-        console.log("This is newPic :-",newPic);
+
+        console.log(`This is Cloudinary result: ${result}`);
+        const newPic = new Mongo({ name: req.file.originalname, url: result.secure_url });
+        console.log("This is newPic:", newPic);
         await newPic.save();
 
-        fs.unlink(path, (err) => {
-            if (err) console.error('Error deleting file:', err);
-            else console.log('File deleted successfully');
-        });
-        console.log("file saved successfully");
-      
+        console.log("File saved successfully in database and Cloudinary.");
+        res.status(200).json({ message: "File uploaded successfully!", file: newPic });
     } catch (error) {
-        console.log('Upload error:', error);
-        res.status(500).send('Error uploading file.');
+        console.error('Upload error:', error);
+        res.status(500).json({ message: 'Error uploading file.', error });
     }
-    res.status(200).json({ message: "File uploaded successfully!"});
 });
+
 
 //for deleting photo
 app.delete("/deletephoto", async (req, res) => {
@@ -112,26 +107,37 @@ app.get("/getvideo",async(req,res)=>{
     }
 })
 //for uploading videos
-app.post('/uploadvideo',upload.single('video'),async(req,res)=>{
-    console.log(req.file);
-    try{
-        const result = await cloudinary.uploader.upload(req.file.path,{
-            resource_type:'video',
+app.post('/uploadvideo', upload.single('video'), async (req, res) => {
+    try {
+        console.log(req.file); // Logs the uploaded video metadata
+        const result = await new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+                { resource_type: 'video', public_id: req.file.originalname },
+                (error, result) => {
+                    if (error) reject(error);
+                    else resolve(result);
+                }
+            );
+            stream.end(req.file.buffer); // Pass the buffer to the stream
         });
-        console.log(result);
-        const newvideo = new vidMongo({public_id:result.public_id,name:req.file.originalname,url:result.secure_url});
-        await newvideo.save();
-        fs.unlink(req.file.path, (err) => {
-            if (err) console.error('Error deleting file:', err);
-            else console.log('File deleted successfully');
+
+        console.log(`This is Cloudinary result: ${result}`);
+        const newVideo = new vidMongo({
+            public_id: result.public_id,
+            name: req.file.originalname,
+            url: result.secure_url,
         });
-        res.status(200).json("video uploaded successfully");
+        console.log("This is newVideo:", newVideo);
+        await newVideo.save();
+
+        console.log("Video saved successfully in database and Cloudinary.");
+        res.status(200).json({ message: "Video uploaded successfully!", video: newVideo });
+    } catch (error) {
+        console.error('Upload error:', error);
+        res.status(500).json({ message: 'Error uploading video.', error });
     }
-   catch(err){
-    console.error('Error uploading video:', err);
-    res.status(500).json({ err: 'Failed to upload video' });
-   }
-})
+});
+
 //for deleting videos
 app.delete("/deletevideo", async (req, res) => {
     let id = req.query.id;
