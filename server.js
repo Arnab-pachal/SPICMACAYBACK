@@ -6,13 +6,9 @@ const Mongo = require("./schema");
 const methodOverride = require("method-override");
 const vidMongo = require("./vidschema");
 require('dotenv').config();
-
+const cors = require('cors');
 const app = express();
-const cors = require("cors");
-//allowing all origin for development purpose
-app.use(cors());
-
-
+app.use(cors({origin:"https://spicmacay-e7ge.vercel.app"}));
 cloudinary.config({
     cloud_name: process.env.CLOUD_NAME,
     api_key: process.env.API_KEY,
