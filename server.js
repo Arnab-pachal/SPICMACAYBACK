@@ -9,7 +9,10 @@ require('dotenv').config();
 
 const app = express();
 const cors = require("cors");
+//allowing all origin for development purpose
 app.use(cors());
+
+
 cloudinary.config({
     cloud_name: process.env.CLOUD_NAME,
     api_key: process.env.API_KEY,
@@ -21,9 +24,12 @@ app.use(express.json());
 app.use(methodOverride("_method"));
 app.set("view engine", "ejs");
 
+
 app.listen(3001, () => {
     console.log("app is listening on port 3001");
 });
+
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, uploadPath),
     filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname),
@@ -35,65 +41,28 @@ const path = require('path');
 const uploadPath = path.join(__dirname, 'uploads');
 
 
-app.get("/", async (req, res) => {
+app.get("/",(req,res)=>{res.status(200).json("You are on the root route")});
+//for getting photo
+app.get("/getphoto", async (req, res) => {
    try{ const alldata = await Mongo.find({});
     res.status(200).json(alldata);}
            catch (error) {
             console.error('Error fetching photos:', error);
             res.status(500).json({ message: 'Error fetching photos' });
-      
+          }
     }
-    
-}
 );
-app.get("/getvideo",async(req,res)=>{
-    try{
-        const data = await vidMongo.find({});
-        res.status(200).json(data);
-    }
-    catch(err){
-        console.log(err);
-        res.status(500).json(`some error occured ${err}`)
-    }
-})
-
-app.delete("/delete", async (req, res) => {
-    let id = req.query.id;
-    console.log(id);
-    try{
-    let doc = await Mongo.findByIdAndDelete(id);
-    const public_id = doc.name;
-    await cloudinary.uploader.destroy(public_id);
-    console.log(doc);
-    res.status(200).send("file uploaded successfully");
-    }
-    catch(err){
-        console.log("error occured");
-    }
-});
-
-app.delete("/deletevid", async (req, res) => {
-    let id = req.query.id;
-    console.log(id);
-    try{
-    let doc = await vidMongo.findOneAndDelete({public_id:id});
-    await cloudinary.uploader.destroy(id);
-    console.log(doc);
-    res.status(200).send("video file uploaded successfully");
-    }
-    catch(err){
-        console.log("error occured");
-    }
-});
-
-app.post('/cloud', upload.single('file'), async (req, res) => {
+//for uploading photo
+app.post('/uploadphoto', upload.single('file'), async (req, res) => {
     const path = req.file.path;
+    console.log(req.file);
     try {
         const result = await cloudinary.uploader.upload(path, {
             public_id: req.file.originalname,
         });
-
+        console.log(`This is cloudinary result :- ${result}\n`)
         const newPic = new Mongo({ name: req.file.originalname, url: result.url });
+        console.log("This is newPic :-",newPic);
         await newPic.save();
 
         fs.unlink(path, (err) => {
@@ -109,7 +78,40 @@ app.post('/cloud', upload.single('file'), async (req, res) => {
     res.status(200).json({ message: "File uploaded successfully!"});
 });
 
-app.post('/upload',upload.single('video'),async(req,res)=>{
+//for deleting photo
+app.delete("/deletephoto", async (req, res) => {
+    let id = req.query.id;
+    console.log(id);
+    try{
+    let doc = await Mongo.findByIdAndDelete(id);
+    const public_id = doc.name;
+    console.log(public_id)
+    let del =await cloudinary.uploader.destroy(public_id);
+    console.log(del);
+    console.log(doc);
+    res.status(200).send("file uploaded successfully");
+    }
+    catch(err){
+        console.log("error occured");
+    }
+});
+
+
+
+//routes for videos
+//for getting videos
+app.get("/getvideo",async(req,res)=>{
+    try{
+        const data = await vidMongo.find({});
+        res.status(200).json(data);
+    }
+    catch(err){
+        console.log(err);
+        res.status(500).json(`some error occured ${err}`)
+    }
+})
+//for uploading videos
+app.post('/uploadvideo',upload.single('video'),async(req,res)=>{
     console.log(req.file);
     try{
         const result = await cloudinary.uploader.upload(req.file.path,{
@@ -129,3 +131,20 @@ app.post('/upload',upload.single('video'),async(req,res)=>{
     res.status(500).json({ err: 'Failed to upload video' });
    }
 })
+//for deleting videos
+app.delete("/deletevideo", async (req, res) => {
+    let id = req.query.id;
+    console.log(id);
+    try{
+    let doc = await vidMongo.findOneAndDelete({public_id:id});
+    await cloudinary.uploader.destroy(id);
+    console.log(doc);
+    res.status(200).send("video file uploaded successfully");
+    }
+    catch(err){
+        console.log("error occured");
+    }
+});
+
+
+
