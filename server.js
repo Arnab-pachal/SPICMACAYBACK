@@ -8,14 +8,18 @@ const vidMongo = require("./vidschema");
 require('dotenv').config();
 const cors = require('cors');
 const app = express();
-app.use(cors({origin:"*",methods:['GET','POST','DELETE']}));
+// Middleware
+app.use(cors({
+    origin: process.env.FRONTEND_URL, 
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  }));
 cloudinary.config({
     cloud_name: process.env.CLOUD_NAME,
     api_key: process.env.API_KEY,
     api_secret: process.env.API_SECRET
-});
-
-app.use(express.urlencoded({ extended: true }));
+});                                                                 
+app.use(express.urlencoded({ extended: true}));
 app.use(express.json());
 app.use(methodOverride("_method"));
 app.set("view engine", "ejs");
