@@ -5,28 +5,31 @@ const cloudinary = require('cloudinary').v2;
 const Mongo = require("./schema");
 const methodOverride = require("method-override");
 const vidMongo = require("./vidschema");
+const pass = require("./password");
 require('dotenv').config();
 const cors = require('cors');
+const cookieParser = require("cookie-parser");
 const app = express();
+app.use(cookieParser());
 // Middleware
 app.use(cors({
-    origin:"*", 
+    origin: "*",
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
-  }));
+}));
 cloudinary.config({
     cloud_name: process.env.CLOUD_NAME,
     api_key: process.env.API_KEY,
     api_secret: process.env.API_SECRET
-});                                                                 
-app.use(express.urlencoded({ extended: true}));
+});
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(methodOverride("_method"));
 app.set("view engine", "ejs");
 
 
-app.listen(3001, () => {
-    console.log("app is listening on port 3001");
+app.listen(8080, () => {
+    console.log("app is listening on port 8080");
 });
 
 
@@ -34,16 +37,18 @@ const storage = multer.memoryStorage();
 
 const upload = multer({ storage });
 
-app.get("/",(req,res)=>{res.status(200).json("You are on the root route")});
+app.get("/", (req, res) => { res.status(200).json("You are on the root route") });
 //for getting photo
 app.get("/getphoto", async (req, res) => {
-   try{ const alldata = await Mongo.find({});
-    res.status(200).json(alldata);}
-           catch (error) {
-            console.error('Error fetching photos:', error);
-            res.status(500).json({ message: 'Error fetching photos' });
-          }
+    try {
+        const alldata = await Mongo.find({});
+        res.status(200).json(alldata);
     }
+    catch (error) {
+        console.error('Error fetching photos:', error);
+        res.status(500).json({ message: 'Error fetching photos' });
+    }
+}
 );
 
 app.post('/uploadphoto', upload.single('file'), async (req, res) => {
@@ -78,16 +83,16 @@ app.post('/uploadphoto', upload.single('file'), async (req, res) => {
 app.delete("/deletephoto", async (req, res) => {
     let id = req.query.id;
     console.log(id);
-    try{
-    let doc = await Mongo.findByIdAndDelete(id);
-    const public_id = doc.name;
-    console.log(public_id)
-    let del =await cloudinary.uploader.destroy(public_id);
-    console.log(del);
-    console.log(doc);
-    res.status(200).send("file uploaded successfully");
+    try {
+        let doc = await Mongo.findByIdAndDelete(id);
+        const public_id = doc.name;
+        console.log(public_id)
+        let del = await cloudinary.uploader.destroy(public_id);
+        console.log(del);
+        console.log(doc);
+        res.status(200).send("file uploaded successfully");
     }
-    catch(err){
+    catch (err) {
         console.log("error occured");
     }
 });
@@ -96,12 +101,12 @@ app.delete("/deletephoto", async (req, res) => {
 
 //routes for videos
 //for getting videos
-app.get("/getvideo",async(req,res)=>{
-    try{
+app.get("/getvideo", async (req, res) => {
+    try {
         const data = await vidMongo.find({});
         res.status(200).json(data);
     }
-    catch(err){
+    catch (err) {
         console.log(err);
         res.status(500).json(`some error occured ${err}`)
     }
@@ -142,16 +147,27 @@ app.post('/uploadvideo', upload.single('video'), async (req, res) => {
 app.delete("/deletevideo", async (req, res) => {
     let id = req.query.id;
     console.log(id);
-    try{
-    let doc = await vidMongo.findOneAndDelete({public_id:id});
-    await cloudinary.uploader.destroy(id);
-    console.log(doc);
-    res.status(200).send("video file uploaded successfully");
+    try {
+        let doc = await vidMongo.findOneAndDelete({ public_id: id });
+        await cloudinary.uploader.destroy(id);
+        console.log(doc);
+        res.status(200).send("video file uploaded successfully");
     }
-    catch(err){
+    catch (err) {
         console.log("error occured");
     }
 });
 
 
+app.post("/check", async (req, res) => {
+    let doc =await pass.findOne({ name: req.body.key });
+    if (doc != null) {
+        console.log(doc.code);
+        res.status(200).json({code : doc.code});
+    }
+    else {
+        res.status(504).json("This is Not valid username .please type valid username");
+    }
+
+})
 
