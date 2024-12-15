@@ -13,7 +13,7 @@ const app = express();
 app.use(cookieParser());
 async function connectToDB() {
     try {
-      await mongoose.connect(`mongodb+srv://${process.env.ATLAS_USERNAME}:${process.env.ATLAS_PASSWORD}@cluster0.ustzk.mongodb.net/mypass?retryWrites=true&w=majority`, {
+      await mongoose.connect(`mongodb+srv://ap23cs8031:ayantika9@cluster0.ustzk.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
       });
