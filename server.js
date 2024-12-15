@@ -11,9 +11,22 @@ const cors = require('cors');
 const cookieParser = require("cookie-parser");
 const app = express();
 app.use(cookieParser());
-mongoose.connect(`mongodb+srv://${process.env.ATLAS_USERNAME}:${process.env.ATLAS_PASSWORD}@cluster0.ustzk.mongodb.net/mypass?retryWrites=true&w=majority`)
-  .then(() => console.log('Connected to MongoDB Atlas!'))
-  .catch((error) => console.error('Error connecting to MongoDB Atlas:', error));
+async function connectToDB() {
+    try {
+      await mongoose.connect(`mongodb+srv://${process.env.ATLAS_USERNAME}:${process.env.ATLAS_PASSWORD}@cluster0.ustzk.mongodb.net/mypass?retryWrites=true&w=majority`, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      });
+      console.log('Connected to MongoDB Atlas!');
+    } catch (error) {
+      console.error('Error connecting to MongoDB Atlas:', error);
+      process.exit(1);
+    }
+  }
+  
+  connectToDB().then(() => {
+    console.log("successfully connected");
+  });
 // Middleware
 app.use(cors({
     origin: "*",
