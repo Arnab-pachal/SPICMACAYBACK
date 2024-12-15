@@ -1,6 +1,5 @@
 const express = require("express");
 const multer = require("multer");
-const fs = require("fs");
 const cloudinary = require('cloudinary').v2;
 const Mongo = require("./schema");
 const methodOverride = require("method-override");
