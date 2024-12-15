@@ -1,15 +1,19 @@
 const express = require("express");
 const multer = require("multer");
 const cloudinary = require('cloudinary').v2;
-const Mongo = require("./schema");
+const Mongo = require("./schema.js");
 const methodOverride = require("method-override");
-const vidMongo = require("./vidschema");
-const pass = require("./password");
+const mongoose = require("mongoose");
+const vidMongo = require("./vidschema.js");
+const pass = require("./password.js");
 require('dotenv').config();
 const cors = require('cors');
 const cookieParser = require("cookie-parser");
 const app = express();
 app.use(cookieParser());
+mongoose.connect(`mongodb+srv://${process.env.ATLAS_USERNAME}:${process.env.ATLAS_PASSWORD}@cluster0.ustzk.mongodb.net/mypass?retryWrites=true&w=majority`)
+  .then(() => console.log('Connected to MongoDB Atlas!'))
+  .catch((error) => console.error('Error connecting to MongoDB Atlas:', error));
 // Middleware
 app.use(cors({
     origin: "*",
