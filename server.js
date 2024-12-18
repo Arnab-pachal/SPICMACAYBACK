@@ -144,7 +144,7 @@ app.post('/uploadvideo', upload.single('video'), async (req, res) => {
 
         console.log(`This is Cloudinary result: ${result}`);
         const newVideo = new vidMongo({
-            public_id: result.public_id,
+           
             name: req.file.originalname,
             url: result.secure_url,
         });
@@ -164,10 +164,10 @@ app.delete("/deletevideo", async (req, res) => {
     let id = req.query.id;
     console.log(id);
     try {
-        let doc = await vidMongo.findOneAndDelete({ public_id: id });
+        let doc = await vidMongo.findOneAndDelete({ _id: id });
         await cloudinary.uploader.destroy(id);
         console.log(doc);
-        res.status(200).send("video file uploaded successfully");
+        res.status(200).send("video file deleted successfully");
     }
     catch (err) {
         console.log("error occured");
