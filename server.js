@@ -106,7 +106,7 @@ app.delete("/deletephoto", async (req, res) => {
         let del = await cloudinary.uploader.destroy(public_id);
         console.log(del);
         console.log(doc);
-        res.status(200).send("file uploaded successfully");
+        res.status(200).send("file deleted successfully");
     }
     catch (err) {
         console.log("error occured");
