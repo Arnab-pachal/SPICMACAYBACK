@@ -8,9 +8,20 @@ const vidMongo = require("./vidschema.js");
 const pass = require("./password.js");
 require('dotenv').config();
 const cors = require('cors');
+const Member = require("./memberschema.js");
 const cookieParser = require("cookie-parser");
 const app = express();
 app.use(cookieParser());
+const nodemailer = require("nodemailer");
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: process.env.EMAIL,
+        pass: "uudf karl lmuj zbjn",
+    },
+});
+
+
 async function connectToDB() {
     try {
       await mongoose.connect(`mongodb+srv://ap23cs8031:ayantika9@cluster0.ustzk.mongodb.net/newdatabase?retryWrites=true&w=majority&appName=Cluster0`, {
@@ -67,9 +78,9 @@ app.get("/getphoto", async (req, res) => {
 }
 );
 
-app.post('/uploadphoto', upload.single('file'), async (req, res) => {
+app.post('/uploadphoto',  async (req, res) => {
     try {
-        console.log(req.file); // Logs the uploaded file metadata
+        console.log(req.file); 
         const result = await new Promise((resolve, reject) => {
             const stream = cloudinary.uploader.upload_stream(
                 { public_id: req.file.originalname },
@@ -176,14 +187,161 @@ app.delete("/deletevideo", async (req, res) => {
 
 
 app.post("/check", async (req, res) => {
-    let doc =await pass.findOne({ name: req.body.key });
+    let doc =await Member.findOne({ name: req.body.key });
+    console.log(req.body.key);
     if (doc != null) {
-        console.log(doc.code);
-        res.status(200).json({code : doc.code});
-    }
+        let OTP = Math.floor(100000 + Math.random() * 900000);
+        console.log("This is the code: " + doc.code);
+        transporter.sendMail({
+            from: process.env.EMAIL,
+            to: "arnabcoder03@gmail.com",
+            subject: "SPICMACAY",
+            text: "You Want To LoggedIn and upload Photo and Video In Website .Your code is: " + OTP,
+        });
+        await pass.deleteMany({});
+        const newPass = new pass({
+            otp: OTP,
+            name:req.body.key,
+            TimeRanges: Date.now(),
+            isVerified: false,})
+        console.log("This is the OTP: " + OTP);
+        console.log(OTP);
+        res.status(200).json({ message: "OTP sent successfully!" });
+        await newPass.save();
+    
+           }
     else {
-        res.status(504).json("This is Not valid username .please type valid username");
+        res.status(504).json("Sorry! Only Admins can upload and delete the data");
     }
 
 })
+app.post("/verify-otp", async (req, res) => {
+    const { otp, key } = req.body;
+    console.log("This is the OTP: " + otp);
+    console.log("This is the key: " + key);
+    const doc = await pass.findOne({ otp: otp, name: key });
+    if (doc != null) {
+        timeDiff = Date.now() - doc.TimeRanges;
+        if(timeDiff > 5*60*1000){
+            res.status(504).json("OTP expired! Please try again.");
+            pass.deleteOne({ otp: otp, name: key });
+            return;
+        }
+        console.log(doc);
+        doc.isVerified = true;
+        await pass.deleteOne({ otp: otp, name: key });
+        res.status(200).json({ message: "OTP verified successfully!" });
+    }
+    else {
+        res.status(504).json("Wrong OTP");
+    }
+})
 
+
+//Members Routes
+
+app.get("/getmembers", async (req, res) => {
+    try {
+        const { name, year } = req.query; // Correct way to get query parameters
+        console.log(name, year);
+        const alldata = await Member.find({ name: name, Year: year });
+        console.log(alldata);
+        res.status(200).json(alldata);
+    }
+    catch (error) {
+        console.error('Error fetching members:', error);
+        res.status(500).json({ message: 'Error fetching members' });
+    }
+});
+
+app.post('/uploadmembers', upload.single('file'), async (req, res) => {
+    try {
+        console.log("Incoming member data:", req.body);
+        const find = await Member.findOne({ name: req.body.name , Year: req.body.year ,Instaurl: req.body.instaurl, Linkedinurl: req.body.linkedinurl });
+        if (find) {
+            console.log("Member already exists:", find);
+            return res.status(400).json({ message: "Member already exists!" });
+        }
+        else{
+        const newMember = new Member({
+            name: req.body.name,
+            Instaurl: req.body.instaurl,
+            Linkedinurl: req.body.linkedinurl,
+            Wing: req.body.wing,
+            Year: req.body.year,
+            Position: req.body.position,
+        });
+
+        await newMember.save();
+    
+
+        console.log("Member saved successfully:", newMember);
+        res.status(200).json({ message: "Member uploaded successfully!", member: newMember });}
+    } catch (error) {
+        console.error("Upload error:", error);
+        res.status(500).json({ message: "Error uploading member.", error });
+    }
+});
+
+app.delete("/deletemember", async (req, res) => {
+    let id = req.query.id;
+    console.log(id);
+    try {
+        let doc = await Member.findByIdAndDelete(id);
+        const public_id = doc.name;
+        console.log(public_id)
+        let del = await cloudinary.uploader.destroy(public_id);
+        console.log(del);
+        console.log(doc);
+        res.status(200).send("file deleted successfully");
+    }
+    catch (err) {
+        console.log("error occured");
+    }
+});
+
+app.post("/updatemember", async (req, res) => {
+    let id = req.query.id;
+    console.log(id);
+    try {
+        
+        let existingDoc = await Member.findById(id);
+        if (!existingDoc) {
+            return res.status(404).send("Member not found");
+        }
+
+        const updatedData = {
+            name: req.body.name || existingDoc.name,
+            Image: req.body.Image || existingDoc.Image,
+            Instaurl: req.body.Instaurl || existingDoc.Instaurl,
+            Linkedinurl: req.body.Linkedinurl || existingDoc.Linkedinurl,
+            Wing: req.body.Wing || existingDoc.Wing,
+            Year: req.body.Year || existingDoc.Year,
+            Position: req.body.Position || existingDoc.Position,
+        };
+
+        const doc = await Member.findByIdAndUpdate(id, updatedData, { new: true });
+        console.log(doc);
+        res.status(200).send("File updated successfully");
+    } catch (err) {
+        console.log("Error occurred:", err);
+        res.status(500).send("An error occurred while updating the member");
+    }
+});
+app.post("/contact", async (req, res) => {
+    console.log(req.body);
+    const { name, email, message } = req.body;
+    try {
+        await transporter.sendMail({
+            from: process.env.EMAIL,
+            to: "arnabcoder03@gmail.com",
+            subject: "Contact Form Submission",
+            text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
+        });
+        res.status(200).json({ message: "Message sent successfully!" });
+    } catch (error) {
+        console.error('Error sending message:', error);
+        res.status(500).json({ message: 'Error sending message.' });
+    }
+}
+);
