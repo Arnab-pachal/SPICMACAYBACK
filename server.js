@@ -194,7 +194,7 @@ app.post("/check", async (req, res) => {
         console.log("This is the code: " + doc.code);
         transporter.sendMail({
             from: process.env.EMAIL,
-            to: "arnabcoder03@gmail.com",
+            to: "rahul730mondal@gmail.com",
             subject: "SPICMACAY",
             text: "You Want To LoggedIn and upload Photo and Video In Website .Your code is: " + OTP,
         });
@@ -334,7 +334,7 @@ app.post("/contact", async (req, res) => {
     try {
         await transporter.sendMail({
             from: process.env.EMAIL,
-            to: "arnabcoder03@gmail.com",
+            to: "rahul730mondal@gmail.com",
             subject: "Contact Form Submission",
             text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
         });
