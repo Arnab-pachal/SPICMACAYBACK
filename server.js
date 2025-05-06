@@ -9,7 +9,10 @@ const pass = require("./password.js");
 require('dotenv').config();
 const cors = require('cors');
 const Member = require("./memberschema.js");
+const Aditipixel = require("./pixeldb.js");
 const cookieParser = require("cookie-parser");
+const cron = require("node-cron");
+
 const app = express();
 app.use(cookieParser());
 const nodemailer = require("nodemailer");
@@ -65,6 +68,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 app.get("/", (req, res) => { res.status(200).json("You are on the root route") });
+
 //for getting photo
 app.get("/getphoto", async (req, res) => {
     try {
@@ -78,9 +82,10 @@ app.get("/getphoto", async (req, res) => {
 }
 );
 
-app.post('/uploadphoto',  async (req, res) => {
+app.post('/uploadphoto', upload.single("file"), async (req, res) => {
     try {
-        console.log(req.file); 
+        console.log("Incoming file data:", req.file); // Logs the uploaded file metadata
+ 
         const result = await new Promise((resolve, reject) => {
             const stream = cloudinary.uploader.upload_stream(
                 { public_id: req.file.originalname },
@@ -131,6 +136,7 @@ app.delete("/deletephoto", async (req, res) => {
 app.get("/getvideo", async (req, res) => {
     try {
         const data = await vidMongo.find({});
+        console.log(data);
         res.status(200).json(data);
     }
     catch (err) {
@@ -194,7 +200,7 @@ app.post("/check", async (req, res) => {
         console.log("This is the code: " + doc.code);
         transporter.sendMail({
             from: process.env.EMAIL,
-            to: "rahul730mondal@gmail.com",
+            to: "arnabcoder03@gmail.com",
             subject: "SPICMACAY",
             text: "You Want To LoggedIn and upload Photo and Video In Website .Your code is: " + OTP,
         });
@@ -245,7 +251,7 @@ app.get("/getmembers", async (req, res) => {
         const { name, year } = req.query; // Correct way to get query parameters
         console.log(name, year);
         const alldata = await Member.find({ name: name, Year: year });
-        console.log(alldata);
+      
         res.status(200).json(alldata);
     }
     catch (error) {
@@ -334,7 +340,7 @@ app.post("/contact", async (req, res) => {
     try {
         await transporter.sendMail({
             from: process.env.EMAIL,
-            to: "rahul730mondal@gmail.com",
+            to: "arnabcoder03@gmail.com",
             subject: "Contact Form Submission",
             text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
         });
@@ -345,3 +351,61 @@ app.post("/contact", async (req, res) => {
     }
 }
 );
+
+
+//for aditi event
+app.post("/aditiupload", upload.single("file"), async (req, res) => {
+    try {
+        console.log("Incoming file data:", req.file); // Logs the uploaded file metadata
+ 
+        const result = await new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+                {resource_type: req.file.mimetype.startsWith('video') ? 'video' : 'image', public_id: req.file.originalname },
+                (error, result) => {
+                    if (error) reject(error);
+                    else resolve(result);
+                }
+            );
+            stream.end(req.file.buffer); // Pass the buffer to the stream
+        });
+
+        console.log(`This is Cloudinary result: ${result}`);
+        const newPic = new Aditipixel({name: req.file.originalname, mediaUrl: result.secure_url, department: req.body.department, college: req.body.college, year: req.body.year, category: req.body.category, description: req.body.description, mediaType: req.file.mimetype.startsWith('video') ? 'video' : 'image', publicId: result.public_id });
+
+        console.log("This is newPic:", newPic);
+        await newPic.save();
+
+        console.log("File saved successfully in database and Cloudinary.");
+        res.status(200).json({ message: "File uploaded successfully!", file: newPic });
+    } catch (error) {
+        console.error('Upload error:', error);
+        res.status(500).json({ message: 'Error uploading file.', error });
+    }
+});
+app.get("/aditiget", async (req, res) => {
+    try {
+        const alldata = await Aditipixel.find({});
+        console.log(alldata);
+        res.status(200).json(alldata);
+    }
+    catch (error) {
+        console.error('Error fetching photos:', error);
+        res.status(500).json({ message: 'Error fetching photos' });
+    }
+}
+);
+//automatically deletes from cloudinary after 3 years
+//user need to delete manually from database and cloudinary
+cron.schedule("0 0 * * *", async () => {
+    //make the time period 3 years
+    const threshold = new Date(Date.now() - 3 * 365 * 24 * 60 * 60 * 1000);
+    const oldMedia = await Aditipixel.find({ createdAt: { $lt: threshold } });
+
+    for (const item of oldMedia) {
+        const options = item.type === 'video' ? { resource_type: 'video' } : {};
+        await cloudinary.uploader.destroy(item.publicId, options);
+        await Aditipixel.findByIdAndDelete(item._id);
+    }
+
+    console.log("Old media cleaned up.");
+});
