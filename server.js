@@ -43,7 +43,7 @@ async function connectToDB() {
   });
 // Middleware
 app.use(cors({
-    origin: "*",
+    origin: "https://spicvitee.onrender.com",
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
 }));
