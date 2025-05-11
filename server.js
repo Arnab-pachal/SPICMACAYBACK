@@ -30,7 +30,7 @@ async function connectToDB() {
   });
 
 app.use(cors({
-    origin: "https://spicvitee.onrender.com/",
+    origin: "https://spicvitee.onrender.com",
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
 }));
