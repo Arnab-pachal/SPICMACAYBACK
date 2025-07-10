@@ -14,7 +14,7 @@ app.use(cookieParser());
 
 async function connectToDB() {
     try {
-      await mongoose.connect(`mongodb+srv://ap23cs8031:ayantika9@cluster0.ustzk.mongodb.net/newdatabase?retryWrites=true&w=majority&appName=Cluster0`, {
+      await mongoose.connect(`mongodb+srv://${process.env.ATLAS_USERNAME}:${process.env.ATLAS_PASSWORD}@cluster0.ustzk.mongodb.net/newdatabase?retryWrites=true&w=majority&appName=Cluster0`, {
         useNewUrlParser: true,
         useUnifiedTopology: true,
       });
@@ -30,7 +30,7 @@ async function connectToDB() {
   });
 
 app.use(cors({
-    origin: "https://spicvitee.onrender.com",
+    origin: "*",
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
 }));
