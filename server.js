@@ -55,7 +55,7 @@ app.use(methodOverride("_method"));
 app.set("view engine", "ejs");
 
 
-app.listen(8080, () => {
+app.listen(8000, () => {
     console.log("app is listening on port 8080");
 });
 app.get("/", (req, res) => { res.status(200).json("You are on the root route") });
